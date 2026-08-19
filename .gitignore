@@ -1,0 +1,19 @@
+# Node.js
+node_modules/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+.env.*
+
+# OS
+.DS_Store
