@@ -17,26 +17,112 @@ def initialize_database():
             """
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL
+                title TEXT NOT NULL,
+                start_at TEXT,
+                end_at TEXT,
+                description TEXT NOT NULL DEFAULT '',
+                reflection TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
+        )
+
+        existing_columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(events)").fetchall()
+        }
+        missing_columns = {
+            "start_at": "TEXT",
+            "end_at": "TEXT",
+            "description": "TEXT NOT NULL DEFAULT ''",
+            "reflection": "TEXT NOT NULL DEFAULT ''",
+            "created_at": "TEXT",
+        }
+
+        # CREATE TABLE IF NOT EXISTSだけでは既存テーブルに列が増えないため、
+        # 保存済みの予定を残したまま不足している列だけを追加します。
+        for column_name, column_definition in missing_columns.items():
+            if column_name not in existing_columns:
+                connection.execute(
+                    f"ALTER TABLE events ADD COLUMN {column_name} {column_definition}"
+                )
+
+        connection.execute(
+            "UPDATE events SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"
         )
 
 
 def get_all_events():
     with connect_database() as connection:
         rows = connection.execute(
-            "SELECT id, title FROM events ORDER BY id"
+            """
+            SELECT id, title, start_at, end_at, description, reflection, created_at
+            FROM events
+            ORDER BY id
+            """
         ).fetchall()
 
     return [dict(row) for row in rows]
 
 
-def create_event(title):
+def create_event(title, start_at=None, end_at=None, description="", reflection=""):
     with connect_database() as connection:
         cursor = connection.execute(
-            "INSERT INTO events (title) VALUES (?)",
-            (title,),
+            """
+            INSERT INTO events (title, start_at, end_at, description, reflection)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (title, start_at, end_at, description, reflection),
+        )
+        row = connection.execute(
+            """
+            SELECT id, title, start_at, end_at, description, reflection, created_at
+            FROM events
+            WHERE id = ?
+            """,
+            (cursor.lastrowid,),
+        ).fetchone()
+
+    return dict(row)
+
+
+def update_event(
+    event_id,
+    title,
+    start_at=None,
+    end_at=None,
+    description="",
+    reflection="",
+):
+    with connect_database() as connection:
+        cursor = connection.execute(
+            """
+            UPDATE events
+            SET title = ?, start_at = ?, end_at = ?, description = ?, reflection = ?
+            WHERE id = ?
+            """,
+            (title, start_at, end_at, description, reflection, event_id),
+        )
+        if cursor.rowcount == 0:
+            return None
+
+        row = connection.execute(
+            """
+            SELECT id, title, start_at, end_at, description, reflection, created_at
+            FROM events
+            WHERE id = ?
+            """,
+            (event_id,),
+        ).fetchone()
+
+    return dict(row)
+
+
+def delete_event(event_id):
+    with connect_database() as connection:
+        cursor = connection.execute(
+            "DELETE FROM events WHERE id = ?",
+            (event_id,),
         )
 
-    return {"id": cursor.lastrowid, "title": title}
+    return cursor.rowcount > 0
