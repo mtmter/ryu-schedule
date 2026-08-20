@@ -18,7 +18,10 @@ def initialize_database():
                 title TEXT NOT NULL,
                 start_at TEXT,
                 end_at TEXT,
-                description TEXT NOT NULL DEFAULT ''
+                description TEXT NOT NULL DEFAULT '',
+                location_name TEXT,
+                destination TEXT,
+                arrival_buffer_minutes INTEGER
             )
             """)
 
@@ -30,6 +33,9 @@ def initialize_database():
             "start_at": "TEXT",
             "end_at": "TEXT",
             "description": "TEXT NOT NULL DEFAULT ''",
+            "location_name": "TEXT",
+            "destination": "TEXT",
+            "arrival_buffer_minutes": "INTEGER",
         }
 
         # CREATE TABLE IF NOT EXISTSだけでは既存テーブルに列が増えないため、
@@ -40,7 +46,7 @@ def initialize_database():
                     f"ALTER TABLE events ADD COLUMN {column_name} {column_definition}"
                 )
 
-        # 以前のテーブルにある不要な列を削除し、指定された5列だけにします。
+        # 以前のテーブルに残っている、現在使用しない列を削除します。
         for column_name in ("reflection", "created_at"):
             if column_name in existing_columns:
                 connection.execute(f"ALTER TABLE events DROP COLUMN {column_name}")
@@ -71,7 +77,15 @@ def initialize_database():
 def get_all_events():
     with connect_database() as connection:
         rows = connection.execute("""
-            SELECT id, title, start_at, end_at, description
+            SELECT
+                id,
+                title,
+                start_at,
+                end_at,
+                description,
+                location_name,
+                destination,
+                arrival_buffer_minutes
             FROM events
             ORDER BY id
             """).fetchall()
@@ -79,18 +93,50 @@ def get_all_events():
     return [dict(row) for row in rows]
 
 
-def create_event(title, start_at=None, end_at=None, description=""):
+def create_event(
+    title,
+    start_at=None,
+    end_at=None,
+    description="",
+    location_name=None,
+    destination=None,
+    arrival_buffer_minutes=None,
+):
     with connect_database() as connection:
         cursor = connection.execute(
             """
-            INSERT INTO events (title, start_at, end_at, description)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO events (
+                title,
+                start_at,
+                end_at,
+                description,
+                location_name,
+                destination,
+                arrival_buffer_minutes
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (title, start_at, end_at, description),
+            (
+                title,
+                start_at,
+                end_at,
+                description,
+                location_name,
+                destination,
+                arrival_buffer_minutes,
+            ),
         )
         row = connection.execute(
             """
-            SELECT id, title, start_at, end_at, description
+            SELECT
+                id,
+                title,
+                start_at,
+                end_at,
+                description,
+                location_name,
+                destination,
+                arrival_buffer_minutes
             FROM events
             WHERE id = ?
             """,
@@ -106,22 +152,49 @@ def update_event(
     start_at=None,
     end_at=None,
     description="",
+    location_name=None,
+    destination=None,
+    arrival_buffer_minutes=None,
 ):
     with connect_database() as connection:
         cursor = connection.execute(
             """
             UPDATE events
-            SET title = ?, start_at = ?, end_at = ?, description = ?
+            SET
+                title = ?,
+                start_at = ?,
+                end_at = ?,
+                description = ?,
+                location_name = ?,
+                destination = ?,
+                arrival_buffer_minutes = ?
             WHERE id = ?
             """,
-            (title, start_at, end_at, description, event_id),
+            (
+                title,
+                start_at,
+                end_at,
+                description,
+                location_name,
+                destination,
+                arrival_buffer_minutes,
+                event_id,
+            ),
         )
         if cursor.rowcount == 0:
             return None
 
         row = connection.execute(
             """
-            SELECT id, title, start_at, end_at, description
+            SELECT
+                id,
+                title,
+                start_at,
+                end_at,
+                description,
+                location_name,
+                destination,
+                arrival_buffer_minutes
             FROM events
             WHERE id = ?
             """,
