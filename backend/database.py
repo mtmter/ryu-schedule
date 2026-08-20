@@ -20,9 +20,7 @@ def initialize_database():
                 title TEXT NOT NULL,
                 start_at TEXT,
                 end_at TEXT,
-                description TEXT NOT NULL DEFAULT '',
-                reflection TEXT NOT NULL DEFAULT '',
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                description TEXT NOT NULL DEFAULT ''
             )
             """
         )
@@ -35,8 +33,6 @@ def initialize_database():
             "start_at": "TEXT",
             "end_at": "TEXT",
             "description": "TEXT NOT NULL DEFAULT ''",
-            "reflection": "TEXT NOT NULL DEFAULT ''",
-            "created_at": "TEXT",
         }
 
         # CREATE TABLE IF NOT EXISTSだけでは既存テーブルに列が増えないため、
@@ -47,16 +43,17 @@ def initialize_database():
                     f"ALTER TABLE events ADD COLUMN {column_name} {column_definition}"
                 )
 
-        connection.execute(
-            "UPDATE events SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"
-        )
+        # 以前のテーブルにある不要な列を削除し、指定された5列だけにします。
+        for column_name in ("reflection", "created_at"):
+            if column_name in existing_columns:
+                connection.execute(f"ALTER TABLE events DROP COLUMN {column_name}")
 
 
 def get_all_events():
     with connect_database() as connection:
         rows = connection.execute(
             """
-            SELECT id, title, start_at, end_at, description, reflection, created_at
+            SELECT id, title, start_at, end_at, description
             FROM events
             ORDER BY id
             """
@@ -65,18 +62,18 @@ def get_all_events():
     return [dict(row) for row in rows]
 
 
-def create_event(title, start_at=None, end_at=None, description="", reflection=""):
+def create_event(title, start_at=None, end_at=None, description=""):
     with connect_database() as connection:
         cursor = connection.execute(
             """
-            INSERT INTO events (title, start_at, end_at, description, reflection)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO events (title, start_at, end_at, description)
+            VALUES (?, ?, ?, ?)
             """,
-            (title, start_at, end_at, description, reflection),
+            (title, start_at, end_at, description),
         )
         row = connection.execute(
             """
-            SELECT id, title, start_at, end_at, description, reflection, created_at
+            SELECT id, title, start_at, end_at, description
             FROM events
             WHERE id = ?
             """,
@@ -92,23 +89,22 @@ def update_event(
     start_at=None,
     end_at=None,
     description="",
-    reflection="",
 ):
     with connect_database() as connection:
         cursor = connection.execute(
             """
             UPDATE events
-            SET title = ?, start_at = ?, end_at = ?, description = ?, reflection = ?
+            SET title = ?, start_at = ?, end_at = ?, description = ?
             WHERE id = ?
             """,
-            (title, start_at, end_at, description, reflection, event_id),
+            (title, start_at, end_at, description, event_id),
         )
         if cursor.rowcount == 0:
             return None
 
         row = connection.execute(
             """
-            SELECT id, title, start_at, end_at, description, reflection, created_at
+            SELECT id, title, start_at, end_at, description
             FROM events
             WHERE id = ?
             """,

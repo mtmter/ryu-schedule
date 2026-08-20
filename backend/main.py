@@ -34,7 +34,6 @@ class EventCreate(BaseModel):
     start_at: str | None = None
     end_at: str | None = None
     description: str = ""
-    reflection: str = ""
 
 
 class Event(BaseModel):
@@ -43,8 +42,6 @@ class Event(BaseModel):
     start_at: str | None
     end_at: str | None
     description: str
-    reflection: str
-    created_at: str
 
 
 @app.get("/api/health")
@@ -68,7 +65,6 @@ def add_event(event: EventCreate):
         event.start_at,
         event.end_at,
         event.description,
-        event.reflection,
     )
 
 
@@ -84,7 +80,6 @@ def edit_event(event_id: int, event: EventCreate):
         event.start_at,
         event.end_at,
         event.description,
-        event.reflection,
     )
     if updated_event is None:
         raise HTTPException(status_code=404, detail="予定が見つかりません")
