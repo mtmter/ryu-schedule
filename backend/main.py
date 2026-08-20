@@ -1,10 +1,18 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from database import create_event, get_all_events, initialize_database
+from database import (
+    create_event,
+    create_task,
+    delete_task,
+    get_all_events,
+    get_all_tasks,
+    initialize_database,
+    update_task,
+)
 
 
 @asynccontextmanager
@@ -18,7 +26,7 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Content-Type"],
 )
 
@@ -30,6 +38,22 @@ class EventCreate(BaseModel):
 class Event(BaseModel):
     id: int
     title: str
+
+
+class TaskCreate(BaseModel):
+    title: str
+    due_at: str | None = None
+    description: str = ""
+    completed: bool = False
+
+
+class Task(BaseModel):
+    id: int
+    title: str
+    due_at: str | None
+    description: str
+    completed: bool
+    created_at: str
 
 
 @app.get("/api/health")
@@ -49,3 +73,44 @@ def add_event(event: EventCreate):
         raise HTTPException(status_code=400, detail="予定タイトルを入力してください")
 
     return create_event(title)
+
+
+@app.get("/api/tasks", response_model=list[Task])
+def read_tasks():
+    return get_all_tasks()
+
+
+@app.post("/api/tasks", response_model=Task, status_code=status.HTTP_201_CREATED)
+def add_task(task: TaskCreate):
+    title = task.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="タスクタイトルを入力してください")
+
+    return create_task(title, task.due_at, task.description, task.completed)
+
+
+@app.put("/api/tasks/{task_id}", response_model=Task)
+def edit_task(task_id: int, task: TaskCreate):
+    title = task.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="タスクタイトルを入力してください")
+
+    updated_task = update_task(
+        task_id,
+        title,
+        task.due_at,
+        task.description,
+        task.completed,
+    )
+    if updated_task is None:
+        raise HTTPException(status_code=404, detail="タスクが見つかりません")
+
+    return updated_task
+
+
+@app.delete("/api/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_task(task_id: int):
+    if not delete_task(task_id):
+        raise HTTPException(status_code=404, detail="タスクが見つかりません")
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
