@@ -6,10 +6,14 @@ from pydantic import BaseModel
 
 from database import (
     create_event,
+    create_task,
     delete_event,
+    delete_task,
     get_all_events,
+    get_all_tasks,
     initialize_database,
     update_event,
+    update_task,
 )
 
 
@@ -42,6 +46,27 @@ class Event(BaseModel):
     start_at: str | None
     end_at: str | None
     description: str
+
+
+class TaskCreate(BaseModel):
+    title: str
+    due_at: str | None = None
+    description: str = ""
+
+
+class TaskUpdate(BaseModel):
+    title: str
+    due_at: str | None
+    description: str
+    completed: bool
+
+
+class Task(BaseModel):
+    id: int
+    title: str
+    due_at: str | None
+    description: str
+    completed: bool
 
 
 @app.get("/api/health")
@@ -91,5 +116,46 @@ def edit_event(event_id: int, event: EventCreate):
 def remove_event(event_id: int):
     if not delete_event(event_id):
         raise HTTPException(status_code=404, detail="予定が見つかりません")
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.get("/api/tasks", response_model=list[Task])
+def read_tasks():
+    return get_all_tasks()
+
+
+@app.post("/api/tasks", response_model=Task, status_code=status.HTTP_201_CREATED)
+def add_task(task: TaskCreate):
+    title = task.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="タスクタイトルを入力してください")
+
+    return create_task(title, task.due_at, task.description)
+
+
+@app.put("/api/tasks/{task_id}", response_model=Task)
+def edit_task(task_id: int, task: TaskUpdate):
+    title = task.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="タスクタイトルを入力してください")
+
+    updated_task = update_task(
+        task_id,
+        title,
+        task.due_at,
+        task.description,
+        task.completed,
+    )
+    if updated_task is None:
+        raise HTTPException(status_code=404, detail="タスクが見つかりません")
+
+    return updated_task
+
+
+@app.delete("/api/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_task(task_id: int):
+    if not delete_task(task_id):
+        raise HTTPException(status_code=404, detail="タスクが見つかりません")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
