@@ -11,7 +11,9 @@ from database import (
     delete_task,
     get_all_events,
     get_all_tasks,
+    get_origin_setting,
     initialize_database,
+    save_origin_setting,
     update_event,
     update_task,
 )
@@ -69,9 +71,42 @@ class Task(BaseModel):
     completed: bool
 
 
+class OriginSettingUpdate(BaseModel):
+    origin_name: str
+    origin_address: str
+
+
+class OriginSetting(BaseModel):
+    id: int
+    origin_name: str
+    origin_address: str
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/settings/origin", response_model=OriginSetting)
+def read_origin_setting():
+    origin_setting = get_origin_setting()
+    if origin_setting is None:
+        raise HTTPException(status_code=404, detail="出発地点が設定されていません")
+
+    return origin_setting
+
+
+@app.put("/api/settings/origin", response_model=OriginSetting)
+def edit_origin_setting(origin_setting: OriginSettingUpdate):
+    origin_name = origin_setting.origin_name.strip()
+    if not origin_name:
+        raise HTTPException(status_code=400, detail="出発地点の表示名を入力してください")
+
+    origin_address = origin_setting.origin_address.strip()
+    if not origin_address:
+        raise HTTPException(status_code=400, detail="出発地点の住所または駅名を入力してください")
+
+    return save_origin_setting(origin_name, origin_address)
 
 
 @app.get("/api/events", response_model=list[Event])
