@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,8 +38,8 @@ app.add_middleware(
 
 class EventCreate(BaseModel):
     title: str
-    start_at: str | None = None
-    end_at: str | None = None
+    start_at: str
+    end_at: str
     description: str = ""
     location_name: str | None = None
     destination: str | None = None
@@ -88,6 +89,23 @@ class OriginSetting(BaseModel):
     origin_address: str
 
 
+def validate_event_times(start_at: str, end_at: str):
+    try:
+        start_datetime = datetime.strptime(start_at, "%Y-%m-%dT%H:%M")
+        end_datetime = datetime.strptime(end_at, "%Y-%m-%dT%H:%M")
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail="日時はYYYY-MM-DDTHH:mm形式で入力してください",
+        ) from error
+
+    if end_datetime < start_datetime:
+        raise HTTPException(
+            status_code=400,
+            detail="終了日時は開始日時以降にしてください",
+        )
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
@@ -126,6 +144,8 @@ def add_event(event: EventCreate):
     if not title:
         raise HTTPException(status_code=400, detail="予定タイトルを入力してください")
 
+    validate_event_times(event.start_at, event.end_at)
+
     return create_event(
         title,
         event.start_at,
@@ -142,6 +162,8 @@ def edit_event(event_id: int, event: EventCreate):
     title = event.title.strip()
     if not title:
         raise HTTPException(status_code=400, detail="予定タイトルを入力してください")
+
+    validate_event_times(event.start_at, event.end_at)
 
     updated_event = update_event(
         event_id,
