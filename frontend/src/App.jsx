@@ -1,88 +1,88 @@
-import { useEffect, useState } from 'react'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
 
-const API_URL = 'http://localhost:8000/api/events'
+const API_URL = "http://localhost:8000/api/events";
 
 async function getEvents() {
-  const response = await fetch(API_URL)
+  const response = await fetch(API_URL);
 
   if (!response.ok) {
-    throw new Error('予定一覧を取得できませんでした')
+    throw new Error("予定一覧を取得できませんでした");
   }
 
-  return response.json()
+  return response.json();
 }
 
 function App() {
-  const [title, setTitle] = useState('')
-  const [startAt, setStartAt] = useState('')
-  const [endAt, setEndAt] = useState('')
-  const [description, setDescription] = useState('')
-  const [events, setEvents] = useState([])
-  const [errorMessage, setErrorMessage] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [title, setTitle] = useState("");
+  const [startAt, setStartAt] = useState("");
+  const [endAt, setEndAt] = useState("");
+  const [description, setDescription] = useState("");
+  const [events, setEvents] = useState([]);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     async function loadEvents() {
       try {
-        setEvents(await getEvents())
+        setEvents(await getEvents());
       } catch (error) {
-        setErrorMessage(error.message)
+        setErrorMessage(error.message);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
 
-    loadEvents()
-  }, [])
+    loadEvents();
+  }, []);
 
   async function handleSubmit(event) {
-    event.preventDefault()
+    event.preventDefault();
 
     if (!title.trim()) {
-      setErrorMessage('予定タイトルを入力してください')
-      return
+      setErrorMessage("予定タイトルを入力してください");
+      return;
     }
 
     if (!startAt || !endAt) {
-      setErrorMessage('開始日時と終了日時を入力してください')
-      return
+      setErrorMessage("開始日時と終了日時を入力してください");
+      return;
     }
 
     if (endAt < startAt) {
-      setErrorMessage('終了日時は開始日時と同じか、それより後にしてください')
-      return
+      setErrorMessage("終了日時は開始日時と同じか、それより後にしてください");
+      return;
     }
 
-    setIsSubmitting(true)
-    setErrorMessage('')
+    setIsSubmitting(true);
+    setErrorMessage("");
 
     try {
       const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
           start_at: startAt,
           end_at: endAt,
           description,
         }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error('予定を追加できませんでした')
+        throw new Error("予定を追加できませんでした");
       }
 
-      setTitle('')
-      setStartAt('')
-      setEndAt('')
-      setDescription('')
-      setEvents(await getEvents())
+      setTitle("");
+      setStartAt("");
+      setEndAt("");
+      setDescription("");
+      setEvents(await getEvents());
     } catch (error) {
-      setErrorMessage(error.message)
+      setErrorMessage(error.message);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
@@ -139,7 +139,7 @@ function App() {
         </div>
 
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? '追加中...' : '追加'}
+          {isSubmitting ? "追加中..." : "追加"}
         </button>
       </form>
 
@@ -152,15 +152,47 @@ function App() {
         ) : events.length === 0 ? (
           <p>予定はまだありません。</p>
         ) : (
-          <ul>
-            {events.map((event) => (
-              <li key={event.id}>{event.title}</li>
-            ))}
-          </ul>
+          Object.entries(
+            events.reduce((groups, event) => {
+              const date = event.start_at
+                ? `${Number(event.start_at.slice(5, 7))}/${Number(
+                    event.start_at.slice(8, 10),
+                  )}`
+                : "";
+
+              if (!groups[date]) {
+                groups[date] = [];
+              }
+
+              groups[date].push(event);
+
+              return groups;
+            }, {}),
+          ).map(([date, dayEvents]) => (
+            <div className="event-day" key={date}>
+              <div className="event-date">{date}</div>
+
+              {dayEvents.map((event) => {
+                const startTime = event.start_at
+                  ? event.start_at.slice(11, 16)
+                  : "";
+
+                return (
+                  <div className="event-item" key={event.id}>
+                    <div className="event-detail">
+                      <span className="event-time">{startTime}</span>
+
+                      <span className="event-title">{event.title}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))
         )}
       </section>
     </main>
-  )
+  );
 }
 
-export default App
+export default App;
