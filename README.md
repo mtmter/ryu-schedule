@@ -27,8 +27,7 @@ ReactからFastAPIへ予定を送り、SQLiteへ保存します。保存した�
 - リクエストとレスポンスはJSONを使用する
 - `start_at`、`end_at`、`due_at`は、ブラウザの`datetime-local`と同じ`YYYY-MM-DDTHH:mm`形式の文字列にする
 - 上記の日時にはタイムゾーン情報を付けず、画面へ入力されたローカル日時として扱う
-- `tasks`の`created_at`はバックエンドで作成し、`YYYY-MM-DDTHH:mm:ss`形式の文字列で返す
-- `id`はフロントエンドから送信しない。`tasks`の`created_at`もフロントエンドから送信しない
+- `id`はフロントエンドから送信しない
 - 文字列として必須の項目は、空白だけの値を許可しない
 - タイトルの空文字や日時の前後関係など、値の内容に問題がある場合は`400 Bad Request`を返す
 - 必須項目の不足やデータ型の違いなど、JSONの形式に問題がある場合はFastAPI標準の`422 Unprocessable Entity`を返す
@@ -98,7 +97,6 @@ ReactからFastAPIへ予定を送り、SQLiteへ保存します。保存した�
 | `due_at` | `TEXT` | いいえ | 期限。未設定時は`NULL` |
 | `description` | `TEXT` | はい | 説明。未入力時は空文字 |
 | `completed` | `INTEGER` | はい | 未完了は`0`、完了は`1`。作成時は`0` |
-| `created_at` | `TEXT` | はい | バックエンドが作成日時を設定 |
 
 SQLiteでは`completed`を`0`または`1`で保存しますが、APIでは`false`または`true`の真偽値として扱います。
 
@@ -110,8 +108,7 @@ SQLiteでは`completed`を`0`または`1`で保存しますが、APIでは`false
   "title": "発表資料を作る",
   "due_at": "2026-08-24T10:00",
   "description": "デモ画面を含める",
-  "completed": false,
-  "created_at": "2026-08-20T13:00:00"
+  "completed": false
 }
 ```
 
