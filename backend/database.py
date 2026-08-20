@@ -48,6 +48,18 @@ def initialize_database():
             if column_name in existing_columns:
                 connection.execute(f"ALTER TABLE events DROP COLUMN {column_name}")
 
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                due_at TEXT,
+                description TEXT NOT NULL DEFAULT '',
+                completed INTEGER NOT NULL DEFAULT 0,
+            )
+            """
+        )
+
 
 def get_all_events():
     with connect_database() as connection:
