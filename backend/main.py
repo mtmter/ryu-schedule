@@ -40,6 +40,9 @@ class EventCreate(BaseModel):
     start_at: str | None = None
     end_at: str | None = None
     description: str = ""
+    location_name: str | None = None
+    destination: str | None = None
+    arrival_buffer_minutes: int | None = None
 
 
 class Event(BaseModel):
@@ -48,6 +51,9 @@ class Event(BaseModel):
     start_at: str | None
     end_at: str | None
     description: str
+    location_name: str | None
+    destination: str | None
+    arrival_buffer_minutes: int | None
 
 
 class TaskCreate(BaseModel):
@@ -125,6 +131,9 @@ def add_event(event: EventCreate):
         event.start_at,
         event.end_at,
         event.description,
+        event.location_name,
+        event.destination,
+        event.arrival_buffer_minutes,
     )
 
 
@@ -140,6 +149,9 @@ def edit_event(event_id: int, event: EventCreate):
         event.start_at,
         event.end_at,
         event.description,
+        event.location_name,
+        event.destination,
+        event.arrival_buffer_minutes,
     )
     if updated_event is None:
         raise HTTPException(status_code=404, detail="予定が見つかりません")
