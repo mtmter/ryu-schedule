@@ -52,7 +52,7 @@ def initialize_database():
                 title TEXT NOT NULL,
                 due_at TEXT,
                 description TEXT NOT NULL DEFAULT '',
-                completed INTEGER NOT NULL DEFAULT 0,
+                completed INTEGER NOT NULL DEFAULT 0
             )
             """
         )
@@ -126,6 +126,75 @@ def delete_event(event_id):
         cursor = connection.execute(
             "DELETE FROM events WHERE id = ?",
             (event_id,),
+        )
+
+    return cursor.rowcount > 0
+
+
+def get_all_tasks():
+    with connect_database() as connection:
+        rows = connection.execute(
+            """
+            SELECT id, title, due_at, description, completed
+            FROM tasks
+            ORDER BY id
+            """
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def create_task(title, due_at=None, description=""):
+    with connect_database() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO tasks (title, due_at, description)
+            VALUES (?, ?, ?)
+            """,
+            (title, due_at, description),
+        )
+        row = connection.execute(
+            """
+            SELECT id, title, due_at, description, completed
+            FROM tasks
+            WHERE id = ?
+            """,
+            (cursor.lastrowid,),
+        ).fetchone()
+
+    return dict(row)
+
+
+def update_task(task_id, title, due_at, description, completed):
+    with connect_database() as connection:
+        cursor = connection.execute(
+            """
+            UPDATE tasks
+            SET title = ?, due_at = ?, description = ?, completed = ?
+            WHERE id = ?
+            """,
+            (title, due_at, description, completed, task_id),
+        )
+        if cursor.rowcount == 0:
+            return None
+
+        row = connection.execute(
+            """
+            SELECT id, title, due_at, description, completed
+            FROM tasks
+            WHERE id = ?
+            """,
+            (task_id,),
+        ).fetchone()
+
+    return dict(row)
+
+
+def delete_task(task_id):
+    with connect_database() as connection:
+        cursor = connection.execute(
+            "DELETE FROM tasks WHERE id = ?",
+            (task_id,),
         )
 
     return cursor.rowcount > 0
