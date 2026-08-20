@@ -12,26 +12,38 @@ h1 {
   font-size: 2rem;
 }
 
-.event-form label {
+.event-form {
+  display: grid;
+  gap: 16px;
+}
+
+.form-field label {
   display: block;
   margin-bottom: 8px;
   font-weight: bold;
 }
 
-.form-row {
-  display: flex;
-  gap: 8px;
+.date-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.form-row input {
-  flex: 1;
-  min-width: 0;
+.event-form input,
+.event-form textarea {
+  width: 100%;
   padding: 10px 12px;
   border: 1px solid #b8bec6;
   border-radius: 6px;
 }
 
-.form-row button {
+.event-form textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.event-form button {
+  justify-self: end;
   padding: 10px 20px;
   border: 0;
   border-radius: 6px;
@@ -40,7 +52,7 @@ h1 {
   cursor: pointer;
 }
 
-.form-row button:disabled {
+.event-form button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -78,7 +90,11 @@ h1 {
     padding: 24px 20px;
   }
 
-  .form-row {
-    flex-direction: column;
+  .date-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .event-form button {
+    width: 100%;
   }
 }
