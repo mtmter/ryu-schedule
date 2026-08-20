@@ -1,32 +1,39 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import MonthCalendar from "./components/MonthCalendar";
+import TaskList from "./components/TaskList";
+import WeekCalendar from "./components/WeekCalendar";
 
-const API_URL = "http://localhost:8000/api/events";
+const API_BASE_URL = "http://localhost:8000/api";
 
-async function getEvents() {
-  const response = await fetch(API_URL);
+async function getScheduleData() {
+  const [eventsResponse, tasksResponse] = await Promise.all([
+    fetch(`${API_BASE_URL}/events`),
+    fetch(`${API_BASE_URL}/tasks`),
+  ]);
 
-  if (!response.ok) {
-    throw new Error("予定一覧を取得できませんでした");
+  if (!eventsResponse.ok || !tasksResponse.ok) {
+    throw new Error("予定とタスクを取得できませんでした");
   }
 
-  return response.json();
+  return Promise.all([eventsResponse.json(), tasksResponse.json()]);
 }
 
 function App() {
-  const [title, setTitle] = useState("");
-  const [startAt, setStartAt] = useState("");
-  const [endAt, setEndAt] = useState("");
-  const [description, setDescription] = useState("");
+  const [activeView, setActiveView] = useState("month");
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [updatingTaskId, setUpdatingTaskId] = useState(null);
 
   useEffect(() => {
-    async function loadEvents() {
+    async function loadSchedule() {
       try {
-        setEvents(await getEvents());
+        const [loadedEvents, loadedTasks] = await getScheduleData();
+        setEvents(loadedEvents);
+        setTasks(loadedTasks);
       } catch (error) {
         setErrorMessage(error.message);
       } finally {
@@ -34,164 +41,127 @@ function App() {
       }
     }
 
-    loadEvents();
+    loadSchedule();
   }, []);
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    if (!title.trim()) {
-      setErrorMessage("予定タイトルを入力してください");
-      return;
-    }
-
-    if (!startAt || !endAt) {
-      setErrorMessage("開始日時と終了日時を入力してください");
-      return;
-    }
-
-    if (endAt < startAt) {
-      setErrorMessage("終了日時は開始日時と同じか、それより後にしてください");
-      return;
-    }
-
-    setIsSubmitting(true);
+  async function handleRetry() {
+    setIsLoading(true);
     setErrorMessage("");
 
     try {
-      const response = await fetch(API_URL, {
-        method: "POST",
+      const [loadedEvents, loadedTasks] = await getScheduleData();
+      setEvents(loadedEvents);
+      setTasks(loadedTasks);
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleTaskToggle(task) {
+    setUpdatingTaskId(task.id);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks/${task.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: title.trim(),
-          start_at: startAt,
-          end_at: endAt,
-          description,
+          title: task.title,
+          due_at: task.due_at,
+          description: task.description,
+          completed: !task.completed,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("予定を追加できませんでした");
+        throw new Error("タスクの完了状態を更新できませんでした");
       }
 
-      setTitle("");
-      setStartAt("");
-      setEndAt("");
-      setDescription("");
-      setEvents(await getEvents());
+      const updatedTask = await response.json();
+      setTasks((currentTasks) =>
+        currentTasks.map((currentTask) =>
+          currentTask.id === updatedTask.id ? updatedTask : currentTask,
+        ),
+      );
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
-      setIsSubmitting(false);
+      setUpdatingTaskId(null);
     }
   }
 
   return (
-    <main className="schedule-app">
-      <h1>よりよいスケジュール帳</h1>
-
-      <form className="event-form" onSubmit={handleSubmit}>
-        <div className="form-field">
-          <label htmlFor="event-title">予定タイトル</label>
-          <input
-            id="event-title"
-            type="text"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder="例: ハッカソン"
-            required
-          />
+    <div className="schedule-app">
+      <header className="app-header">
+        <div className="app-brand">
+          <span className="app-logo" aria-hidden="true">
+            竜
+          </span>
+          <h1>よりよいスケジュール帳</h1>
         </div>
 
-        <div className="date-fields">
-          <div className="form-field">
-            <label htmlFor="event-start-at">開始日時</label>
-            <input
-              id="event-start-at"
-              type="datetime-local"
-              value={startAt}
-              onChange={(event) => setStartAt(event.target.value)}
-              required
-            />
-          </div>
+        <nav className="view-tabs" aria-label="表示を切り替える">
+          <button
+            className={activeView === "month" ? "is-active" : ""}
+            type="button"
+            onClick={() => setActiveView("month")}
+          >
+            月
+          </button>
+          <button
+            className={activeView === "week" ? "is-active" : ""}
+            type="button"
+            onClick={() => setActiveView("week")}
+          >
+            週
+          </button>
+          <button
+            className={activeView === "tasks" ? "is-active" : ""}
+            type="button"
+            onClick={() => setActiveView("tasks")}
+          >
+            タスク
+          </button>
+        </nav>
+      </header>
 
-          <div className="form-field">
-            <label htmlFor="event-end-at">終了日時</label>
-            <input
-              id="event-end-at"
-              type="datetime-local"
-              value={endAt}
-              onChange={(event) => setEndAt(event.target.value)}
-              min={startAt}
-              required
-            />
-          </div>
+      {errorMessage && (
+        <div className="error-message" role="alert">
+          <span>{errorMessage}</span>
+          <button type="button" onClick={handleRetry}>
+            再読み込み
+          </button>
         </div>
+      )}
 
-        <div className="form-field">
-          <label htmlFor="event-description">説明</label>
-          <textarea
-            id="event-description"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="例: 開発と発表を行う"
-          />
-        </div>
-
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "追加中..." : "追加"}
-        </button>
-      </form>
-
-      {errorMessage && <p className="error-message">{errorMessage}</p>}
-
-      <section className="event-list" aria-labelledby="event-list-heading">
-        <h2 id="event-list-heading">予定一覧</h2>
+      <main className="app-content">
         {isLoading ? (
-          <p>読み込み中...</p>
-        ) : events.length === 0 ? (
-          <p>予定はまだありません。</p>
+          <p className="status-message">読み込み中...</p>
+        ) : activeView === "month" ? (
+          <MonthCalendar
+            events={events}
+            tasks={tasks}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+          />
+        ) : activeView === "week" ? (
+          <WeekCalendar
+            events={events}
+            tasks={tasks}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+          />
         ) : (
-          Object.entries(
-            events.reduce((groups, event) => {
-              const date = event.start_at
-                ? `${Number(event.start_at.slice(5, 7))}/${Number(
-                    event.start_at.slice(8, 10),
-                  )}`
-                : "";
-
-              if (!groups[date]) {
-                groups[date] = [];
-              }
-
-              groups[date].push(event);
-
-              return groups;
-            }, {}),
-          ).map(([date, dayEvents]) => (
-            <div className="event-day" key={date}>
-              <div className="event-date">{date}</div>
-
-              {dayEvents.map((event) => {
-                const startTime = event.start_at
-                  ? event.start_at.slice(11, 16)
-                  : "";
-
-                return (
-                  <div className="event-item" key={event.id}>
-                    <div className="event-detail">
-                      <span className="event-time">{startTime}</span>
-
-                      <span className="event-title">{event.title}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))
+          <TaskList
+            tasks={tasks}
+            updatingTaskId={updatingTaskId}
+            onTaskToggle={handleTaskToggle}
+          />
         )}
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }
 
