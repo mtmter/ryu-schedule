@@ -15,6 +15,9 @@ async function getEvents() {
 
 function App() {
   const [title, setTitle] = useState('')
+  const [startAt, setStartAt] = useState('')
+  const [endAt, setEndAt] = useState('')
+  const [description, setDescription] = useState('')
   const [events, setEvents] = useState([])
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -42,6 +45,16 @@ function App() {
       return
     }
 
+    if (!startAt || !endAt) {
+      setErrorMessage('開始日時と終了日時を入力してください')
+      return
+    }
+
+    if (endAt < startAt) {
+      setErrorMessage('終了日時は開始日時と同じか、それより後にしてください')
+      return
+    }
+
     setIsSubmitting(true)
     setErrorMessage('')
 
@@ -49,7 +62,12 @@ function App() {
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({
+          title: title.trim(),
+          start_at: startAt,
+          end_at: endAt,
+          description,
+        }),
       })
 
       if (!response.ok) {
@@ -57,6 +75,9 @@ function App() {
       }
 
       setTitle('')
+      setStartAt('')
+      setEndAt('')
+      setDescription('')
       setEvents(await getEvents())
     } catch (error) {
       setErrorMessage(error.message)
@@ -70,19 +91,56 @@ function App() {
       <h1>よりよいスケジュール帳</h1>
 
       <form className="event-form" onSubmit={handleSubmit}>
-        <label htmlFor="event-title">予定タイトル</label>
-        <div className="form-row">
+        <div className="form-field">
+          <label htmlFor="event-title">予定タイトル</label>
           <input
             id="event-title"
             type="text"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="例: ハッカソン"
+            required
           />
-          <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? '追加中...' : '追加'}
-          </button>
         </div>
+
+        <div className="date-fields">
+          <div className="form-field">
+            <label htmlFor="event-start-at">開始日時</label>
+            <input
+              id="event-start-at"
+              type="datetime-local"
+              value={startAt}
+              onChange={(event) => setStartAt(event.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-field">
+            <label htmlFor="event-end-at">終了日時</label>
+            <input
+              id="event-end-at"
+              type="datetime-local"
+              value={endAt}
+              onChange={(event) => setEndAt(event.target.value)}
+              min={startAt}
+              required
+            />
+          </div>
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="event-description">説明</label>
+          <textarea
+            id="event-description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="例: 開発と発表を行う"
+          />
+        </div>
+
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? '追加中...' : '追加'}
+        </button>
       </form>
 
       {errorMessage && <p className="error-message">{errorMessage}</p>}
