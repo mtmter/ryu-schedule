@@ -19,7 +19,7 @@ ReactからFastAPIへ予定を送り、SQLiteへ保存します。保存した�
 
 > [!IMPORTANT]
 > この節には、上記Issueでこれから実装する予定の仕様も含まれます。
-> 現在の`main`ブランチでは、`events`の`id`と`title`、および`GET /api/events`と`POST /api/events`のみ実装済みです。
+> `events`のAPIと予定追加フォームは実装済みですが、`tasks`の仕様には未実装の内容が含まれます。
 
 ### 共通ルール
 
@@ -27,8 +27,8 @@ ReactからFastAPIへ予定を送り、SQLiteへ保存します。保存した�
 - リクエストとレスポンスはJSONを使用する
 - `start_at`、`end_at`、`due_at`は、ブラウザの`datetime-local`と同じ`YYYY-MM-DDTHH:mm`形式の文字列にする
 - 上記の日時にはタイムゾーン情報を付けず、画面へ入力されたローカル日時として扱う
-- `created_at`はバックエンドで作成し、`YYYY-MM-DDTHH:mm:ss`形式の文字列で返す
-- `id`と`created_at`はフロントエンドから送信しない
+- `tasks`の`created_at`はバックエンドで作成し、`YYYY-MM-DDTHH:mm:ss`形式の文字列で返す
+- `id`はフロントエンドから送信しない。`tasks`の`created_at`もフロントエンドから送信しない
 - 文字列として必須の項目は、空白だけの値を許可しない
 - タイトルの空文字や日時の前後関係など、値の内容に問題がある場合は`400 Bad Request`を返す
 - 必須項目の不足やデータ型の違いなど、JSONの形式に問題がある場合はFastAPI標準の`422 Unprocessable Entity`を返す
@@ -45,8 +45,6 @@ ReactからFastAPIへ予定を送り、SQLiteへ保存します。保存した�
 | `start_at` | `TEXT` | はい | 開始日時、`YYYY-MM-DDTHH:mm`形式 |
 | `end_at` | `TEXT` | はい | 終了日時、`YYYY-MM-DDTHH:mm`形式 |
 | `description` | `TEXT` | はい | 説明。未入力時は空文字 |
-| `reflection` | `TEXT` | はい | 振り返り。作成時は空文字 |
-| `created_at` | `TEXT` | はい | バックエンドが作成日時を設定 |
 
 `end_at`は`start_at`と同じか、それより後の日時にします。
 
@@ -58,9 +56,7 @@ ReactからFastAPIへ予定を送り、SQLiteへ保存します。保存した�
   "title": "ハッカソン",
   "start_at": "2026-08-24T11:00",
   "end_at": "2026-08-24T18:00",
-  "description": "開発と発表を行う",
-  "reflection": "",
-  "created_at": "2026-08-20T13:00:00"
+  "description": "開発と発表を行う"
 }
 ```
 
@@ -72,8 +68,6 @@ ReactからFastAPIへ予定を送り、SQLiteへ保存します。保存した�
 | `POST` | `/api/events` | 下記の作成用JSON | `201 Created`、作成したEvent |
 | `PUT` | `/api/events/{id}` | 下記の更新用JSON | `200 OK`、更新したEvent |
 | `DELETE` | `/api/events/{id}` | なし | `204 No Content`、レスポンス本文なし |
-
-作成用JSONでは`reflection`を送りません。バックエンドが空文字を設定します。
 
 ```json
 {
@@ -91,8 +85,7 @@ ReactからFastAPIへ予定を送り、SQLiteへ保存します。保存した�
   "title": "ハッカソン成果発表",
   "start_at": "2026-08-24T11:00",
   "end_at": "2026-08-24T19:00",
-  "description": "開発後に成果を発表する",
-  "reflection": "時間配分を改善したい"
+  "description": "開発後に成果を発表する"
 }
 ```
 
