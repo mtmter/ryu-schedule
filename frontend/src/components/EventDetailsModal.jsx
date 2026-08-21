@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { WEEKDAY_NAMES, parseDateTime } from "../dateUtils";
 import DateTimePicker from "./DateTimePicker";
+import RouteSearchModal from "./RouteSearchModal";
 
 function formatEventDateTime(value) {
   const date = parseDateTime(value);
@@ -12,7 +13,15 @@ function formatEventDateTime(value) {
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日（${WEEKDAY_NAMES[date.getDay()]}） ${value.slice(11, 16)}`;
 }
 
-function EventDetailsModal({ event, onClose, onDelete, onUpdate }) {
+function EventDetailsModal({
+  event,
+  onClose,
+  onDelete,
+  onRouteSearch,
+  onRouteSearchSuccess,
+  onUpdate,
+  routeSearchResult,
+}) {
   const [mode, setMode] = useState("details");
   const [title, setTitle] = useState(event.title);
   const [startAt, setStartAt] = useState(event.start_at ?? "");
@@ -27,13 +36,18 @@ function EventDetailsModal({ event, onClose, onDelete, onUpdate }) {
   );
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRouteSearching, setIsRouteSearching] = useState(false);
 
-  const isBusy = isSubmitting;
+  const isBusy = isSubmitting || isRouteSearching;
 
   useEffect(() => {
     function handleKeyDown(keyEvent) {
       if (keyEvent.key === "Escape" && !isBusy) {
-        onClose();
+        if (mode === "route") {
+          setMode("details");
+        } else {
+          onClose();
+        }
       }
     }
 
@@ -45,7 +59,7 @@ function EventDetailsModal({ event, onClose, onDelete, onUpdate }) {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isBusy, onClose]);
+  }, [isBusy, mode, onClose]);
 
   function resetForm() {
     setTitle(event.title);
@@ -153,7 +167,11 @@ function EventDetailsModal({ event, onClose, onDelete, onUpdate }) {
           <div>
             <p>予定詳細</p>
             <h2 id="event-details-heading">
-              {mode === "edit" ? "予定を編集" : event.title}
+              {mode === "edit"
+                ? "予定を編集"
+                : mode === "route"
+                  ? "経路を検索"
+                  : event.title}
             </h2>
           </div>
           <button
@@ -167,7 +185,20 @@ function EventDetailsModal({ event, onClose, onDelete, onUpdate }) {
           </button>
         </div>
 
-        {mode === "edit" ? (
+        {mode === "route" ? (
+          <RouteSearchModal
+            event={event}
+            onBack={() => setMode("details")}
+            onBusyChange={setIsRouteSearching}
+            onSearch={onRouteSearch}
+            onSearchSuccess={onRouteSearchSuccess}
+            initialRouteResult={
+              routeSearchResult?.eventId === event.id
+                ? routeSearchResult.result
+                : null
+            }
+          />
+        ) : mode === "edit" ? (
           <form
             className="add-item-form event-edit-form"
             onSubmit={handleUpdate}
@@ -360,8 +391,10 @@ function EventDetailsModal({ event, onClose, onDelete, onUpdate }) {
               <button
                 className="route-search-button"
                 type="button"
-                disabled
-                title="経路検索機能は準備中です"
+                onClick={() => {
+                  setErrorMessage("");
+                  setMode("route");
+                }}
               >
                 経路を検索
               </button>

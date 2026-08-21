@@ -85,6 +85,7 @@ function App() {
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
   const [addModalValues, setAddModalValues] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [routeSearchResult, setRouteSearchResult] = useState(null);
 
   useEffect(() => {
     async function loadSchedule() {
@@ -233,6 +234,7 @@ function App() {
       ),
     );
     setSelectedEvent(updatedEvent);
+    setRouteSearchResult(null);
   }
 
   async function handleDeleteEvent(eventId) {
@@ -250,6 +252,37 @@ function App() {
       currentEvents.filter((currentEvent) => currentEvent.id !== eventId),
     );
     setSelectedEvent(null);
+    setRouteSearchResult(null);
+  }
+
+  async function handleRouteSearch(eventId, origin) {
+    let response;
+
+    try {
+      response = await fetch(`${API_BASE_URL}/events/${eventId}/route-search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ origin }),
+      });
+    } catch {
+      throw new Error("経路検索サービスとの通信に失敗しました");
+    }
+
+    if (!response.ok) {
+      if (response.status === 422) {
+        throw new Error("入力内容を確認してください");
+      }
+
+      if (response.status === 502) {
+        throw new Error("経路検索サービスとの通信に失敗しました");
+      }
+
+      throw new Error(
+        await getResponseError(response, "経路を検索できませんでした"),
+      );
+    }
+
+    return response.json();
   }
 
   return (
@@ -385,7 +418,12 @@ function App() {
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
           onDelete={handleDeleteEvent}
+          onRouteSearch={handleRouteSearch}
+          onRouteSearchSuccess={(result) =>
+            setRouteSearchResult({ eventId: selectedEvent.id, result })
+          }
           onUpdate={handleUpdateEvent}
+          routeSearchResult={routeSearchResult}
         />
       )}
     </div>
