@@ -39,7 +39,7 @@ function createInitialValues(
   date,
   itemType,
   eventStartMinutes = 9 * 60,
-  taskDueMinutes = 23 * 60 + 59,
+  taskDueMinutes = 23 * 60 + 45,
 ) {
   const eventStart = createDateAtMinutes(date, eventStartMinutes);
   const eventEnd = new Date(eventStart.getTime() + 60 * 60 * 1000);

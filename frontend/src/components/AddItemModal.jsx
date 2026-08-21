@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { parseDateTime, toDateTimeInputValue } from "../dateUtils";
+import DateTimePicker from "./DateTimePicker";
 
 function AddItemModal({ initialValues, onClose, onSubmit }) {
   const [itemType, setItemType] = useState(initialValues.itemType);
@@ -74,6 +76,23 @@ function AddItemModal({ initialValues, onClose, onSubmit }) {
     } catch (error) {
       setErrorMessage(error.message);
       setIsSubmitting(false);
+    }
+  }
+
+  function handleEventStartChange(nextStartAt) {
+    const currentStart = parseDateTime(eventStartAt);
+    const currentEnd = parseDateTime(eventEndAt);
+    const nextStart = parseDateTime(nextStartAt);
+    const duration =
+      currentStart && currentEnd && currentEnd >= currentStart
+        ? currentEnd.getTime() - currentStart.getTime()
+        : 60 * 60 * 1000;
+
+    setEventStartAt(nextStartAt);
+    if (nextStart) {
+      setEventEndAt(
+        toDateTimeInputValue(new Date(nextStart.getTime() + duration)),
+      );
     }
   }
 
@@ -153,40 +172,29 @@ function AddItemModal({ initialValues, onClose, onSubmit }) {
 
           {itemType === "event" ? (
             <div className="modal-date-fields">
-              <div className="modal-form-field">
-                <label htmlFor="event-start-at">開始日時</label>
-                <input
-                  id="event-start-at"
-                  type="datetime-local"
-                  value={eventStartAt}
-                  required
-                  onChange={(event) => setEventStartAt(event.target.value)}
-                />
-              </div>
-              <div className="modal-form-field">
-                <label htmlFor="event-end-at">終了日時</label>
-                <input
-                  id="event-end-at"
-                  type="datetime-local"
-                  value={eventEndAt}
-                  min={eventStartAt}
-                  required
-                  onChange={(event) => setEventEndAt(event.target.value)}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="modal-form-field">
-              <label htmlFor="task-due-at">
-                期限 <span>任意</span>
-              </label>
-              <input
-                id="task-due-at"
-                type="datetime-local"
-                value={taskDueAt}
-                onChange={(event) => setTaskDueAt(event.target.value)}
+              <DateTimePicker
+                id="event-start-at"
+                label="開始日時"
+                value={eventStartAt}
+                onChange={handleEventStartChange}
+              />
+              <DateTimePicker
+                id="event-end-at"
+                label="終了日時"
+                value={eventEndAt}
+                min={eventStartAt}
+                onChange={setEventEndAt}
               />
             </div>
+          ) : (
+            <DateTimePicker
+              defaultTime="23:45"
+              id="task-due-at"
+              label="期限"
+              optional
+              value={taskDueAt}
+              onChange={setTaskDueAt}
+            />
           )}
 
           <div className="modal-form-field">
