@@ -63,6 +63,8 @@ def initialize_database():
             CREATE TABLE IF NOT EXISTS travel_plans (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 event_id INTEGER NOT NULL UNIQUE,
+                origin TEXT NOT NULL,
+                destination TEXT NOT NULL,
                 departure_at TEXT NOT NULL,
                 arrival_at TEXT NOT NULL,
                 duration_minutes INTEGER NOT NULL,
@@ -72,6 +74,26 @@ def initialize_database():
             )
             """
         )
+
+        existing_travel_plan_columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(travel_plans)"
+            ).fetchall()
+        }
+        missing_travel_plan_columns = {
+            "origin": "TEXT NOT NULL DEFAULT ''",
+            "destination": "TEXT NOT NULL DEFAULT ''",
+        }
+
+        # 既存の移動予定には出発地・目的地が保存されていないため、
+        # データを残したまま空文字の列を追加します。
+        for column_name, column_definition in missing_travel_plan_columns.items():
+            if column_name not in existing_travel_plan_columns:
+                connection.execute(
+                    "ALTER TABLE travel_plans "
+                    f"ADD COLUMN {column_name} {column_definition}"
+                )
 
         connection.execute(
             """
@@ -232,6 +254,8 @@ def get_travel_plan(event_id):
             SELECT
                 id,
                 event_id,
+                origin,
+                destination,
                 departure_at,
                 arrival_at,
                 duration_minutes,
@@ -251,6 +275,8 @@ def get_travel_plan(event_id):
 
 def save_travel_plan(
     event_id,
+    origin,
+    destination,
     departure_at,
     arrival_at,
     duration_minutes,
@@ -262,14 +288,18 @@ def save_travel_plan(
             """
             INSERT INTO travel_plans (
                 event_id,
+                origin,
+                destination,
                 departure_at,
                 arrival_at,
                 duration_minutes,
                 transport_mode,
                 route_details
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(event_id) DO UPDATE SET
+                origin = excluded.origin,
+                destination = excluded.destination,
                 departure_at = excluded.departure_at,
                 arrival_at = excluded.arrival_at,
                 duration_minutes = excluded.duration_minutes,
@@ -278,6 +308,8 @@ def save_travel_plan(
             """,
             (
                 event_id,
+                origin,
+                destination,
                 departure_at,
                 arrival_at,
                 duration_minutes,
@@ -290,6 +322,8 @@ def save_travel_plan(
             SELECT
                 id,
                 event_id,
+                origin,
+                destination,
                 departure_at,
                 arrival_at,
                 duration_minutes,
