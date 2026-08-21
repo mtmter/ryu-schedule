@@ -207,7 +207,9 @@ function App() {
   }
 
   return (
-    <div className="schedule-app">
+    <div
+      className={`schedule-app${activeView === "month" ? " month-view-active" : ""}`}
+    >
       <header className="app-header">
         <div className="app-brand">
           <span className="app-logo" aria-hidden="true">
