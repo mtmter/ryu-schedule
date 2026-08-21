@@ -26,7 +26,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(title="Ryuute", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

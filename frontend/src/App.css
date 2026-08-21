@@ -155,8 +155,10 @@
 }
 
 .calendar-toolbar .icon-button {
+  display: grid;
   width: 38px;
   padding: 0;
+  place-items: center;
   border-color: transparent;
   font-size: 1.75rem;
   line-height: 1;
@@ -178,13 +180,12 @@
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   border-bottom: 1px solid #d9e0e9;
+  color: #697386;
 }
 
 .month-weekdays div {
   padding: 11px 8px;
-  color: #687285;
   font-size: 0.8rem;
-  font-weight: 650;
   text-align: center;
 }
 
@@ -1018,7 +1019,7 @@
 }
 
 @media (min-width: 721px) {
-  .schedule-app.month-view-active {
+  .schedule-app.calendar-view-active {
     display: flex;
     height: 100vh;
     height: 100dvh;
@@ -1027,44 +1028,61 @@
     flex-direction: column;
   }
 
-  .month-view-active .app-header,
-  .month-view-active .error-message {
+  .calendar-view-active .app-header,
+  .calendar-view-active .error-message {
     flex: 0 0 auto;
   }
 
-  .month-view-active .app-content {
+  .calendar-view-active .app-content {
     min-height: 0;
     flex: 1;
     padding-top: 20px;
     padding-bottom: 20px;
   }
 
-  .month-view-active .app-content > section {
+  .calendar-view-active .app-content > section {
     display: flex;
     height: 100%;
     min-height: 0;
     flex-direction: column;
   }
 
-  .month-view-active .calendar-horizontal-scroll {
+  .calendar-view-active .calendar-horizontal-scroll {
     min-height: 0;
     flex: 1;
   }
 
-  .month-view-active .month-calendar {
+  .calendar-view-active .month-calendar {
     display: grid;
     height: 100%;
     grid-template-rows: auto minmax(0, 1fr);
   }
 
-  .month-view-active .month-grid {
+  .calendar-view-active .month-grid {
     min-height: 0;
     grid-auto-rows: minmax(0, 1fr);
   }
 
-  .month-view-active .month-day {
+  .calendar-view-active .month-day {
     min-height: 0;
     overflow: hidden;
+  }
+
+  .calendar-view-active .week-calendar {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+  }
+
+  .calendar-view-active .week-header-row,
+  .calendar-view-active .week-due-row {
+    flex: 0 0 auto;
+  }
+
+  .calendar-view-active .week-time-scroll {
+    height: auto;
+    min-height: 0;
+    flex: 1;
   }
 }
 

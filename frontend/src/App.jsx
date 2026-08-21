@@ -213,14 +213,14 @@ function App() {
 
   return (
     <div
-      className={`schedule-app${activeView === "month" ? " month-view-active" : ""}`}
+      className={`schedule-app${activeView !== "tasks" ? " calendar-view-active" : ""}`}
     >
       <header className="app-header">
         <div className="app-brand">
           <span className="app-logo" aria-hidden="true">
             竜
           </span>
-          <h1>よりよいスケジュール帳</h1>
+          <h1>Ryuute</h1>
         </div>
 
         <div className="header-calendar-controls">
@@ -255,7 +255,20 @@ function App() {
               type="button"
               onClick={() => {
                 if (activeView === "month") {
-                  setSelectedDate(new Date());
+                  const today = new Date();
+                  const isCurrentMonth =
+                    selectedDate.getFullYear() === today.getFullYear() &&
+                    selectedDate.getMonth() === today.getMonth();
+
+                  setSelectedDate(
+                    isCurrentMonth
+                      ? today
+                      : new Date(
+                          selectedDate.getFullYear(),
+                          selectedDate.getMonth(),
+                          1,
+                        ),
+                  );
                 }
                 setActiveView("week");
               }}
