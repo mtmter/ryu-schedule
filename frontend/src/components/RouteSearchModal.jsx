@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { WEEKDAY_NAMES, parseDateTime } from "../dateUtils";
+import RouteSearchResult from "./RouteSearchResult";
 
 function formatDesiredArrival(event) {
   const startDate = parseDateTime(event.start_at);
@@ -23,6 +24,7 @@ function RouteSearchModal({
   initialRouteResult,
   onBack,
   onBusyChange,
+  onRegister,
   onSearch,
   onSearchSuccess,
 }) {
@@ -59,6 +61,19 @@ function RouteSearchModal({
       setIsSearching(false);
       onBusyChange(false);
     }
+  }
+
+  if (routeResult) {
+    return (
+      <RouteSearchResult
+        route={routeResult}
+        onRegister={onRegister}
+        onRetry={() => {
+          setOrigin("");
+          setRouteResult(null);
+        }}
+      />
+    );
   }
 
   return (
@@ -98,12 +113,6 @@ function RouteSearchModal({
       {errorMessage && (
         <p className="modal-error-message" role="alert">
           {errorMessage}
-        </p>
-      )}
-
-      {routeResult && (
-        <p className="route-search-success" role="status">
-          経路が見つかりました
         </p>
       )}
 
