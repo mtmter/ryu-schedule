@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import AddItemModal from "./components/AddItemModal";
+import CalendarToolbar from "./components/CalendarToolbar";
 import MonthCalendar from "./components/MonthCalendar";
 import TaskList from "./components/TaskList";
 import WeekCalendar from "./components/WeekCalendar";
 import {
+  addDays,
+  addMonths,
+  formatMonthTitle,
+  formatWeekTitle,
   getWeekDates,
   isSameDay,
   toDateTimeInputValue,
@@ -218,6 +223,24 @@ function App() {
           <h1>よりよいスケジュール帳</h1>
         </div>
 
+        <div className="header-calendar-controls">
+          {activeView === "month" ? (
+            <CalendarToolbar
+              title={formatMonthTitle(selectedDate)}
+              onPrevious={() => setSelectedDate(addMonths(selectedDate, -1))}
+              onToday={() => setSelectedDate(new Date())}
+              onNext={() => setSelectedDate(addMonths(selectedDate, 1))}
+            />
+          ) : activeView === "week" ? (
+            <CalendarToolbar
+              title={formatWeekTitle(getWeekDates(selectedDate))}
+              onPrevious={() => setSelectedDate(addDays(selectedDate, -7))}
+              onToday={() => setSelectedDate(new Date())}
+              onNext={() => setSelectedDate(addDays(selectedDate, 7))}
+            />
+          ) : null}
+        </div>
+
         <div className="header-actions">
           <nav className="view-tabs" aria-label="表示を切り替える">
             <button
@@ -230,7 +253,12 @@ function App() {
             <button
               className={activeView === "week" ? "is-active" : ""}
               type="button"
-              onClick={() => setActiveView("week")}
+              onClick={() => {
+                if (activeView === "month") {
+                  setSelectedDate(new Date());
+                }
+                setActiveView("week");
+              }}
             >
               週
             </button>
@@ -270,7 +298,6 @@ function App() {
             events={events}
             tasks={tasks}
             selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
             onDateClick={handleMonthDateClick}
           />
         ) : activeView === "week" ? (
@@ -278,7 +305,6 @@ function App() {
             events={events}
             tasks={tasks}
             selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
             onTimeClick={handleWeekTimeClick}
           />
         ) : (
