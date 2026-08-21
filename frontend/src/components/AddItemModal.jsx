@@ -11,6 +11,9 @@ function AddItemModal({ initialValues, onClose, onSubmit }) {
   const [eventEndAt, setEventEndAt] = useState(initialValues.eventEndAt);
   const [taskDueAt, setTaskDueAt] = useState(initialValues.taskDueAt);
   const [description, setDescription] = useState("");
+  const [locationName, setLocationName] = useState("");
+  const [destination, setDestination] = useState("");
+  const [arrivalBufferMinutes, setArrivalBufferMinutes] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -53,6 +56,15 @@ function AddItemModal({ initialValues, onClose, onSubmit }) {
         setErrorMessage("終了日時は開始日時以降にしてください");
         return;
       }
+
+      if (
+        arrivalBufferMinutes !== "" &&
+        (!Number.isInteger(Number(arrivalBufferMinutes)) ||
+          Number(arrivalBufferMinutes) < 0)
+      ) {
+        setErrorMessage("到着余裕時間は0以上の整数で入力してください");
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -65,6 +77,10 @@ function AddItemModal({ initialValues, onClose, onSubmit }) {
           start_at: eventStartAt,
           end_at: eventEndAt,
           description,
+          location_name: locationName.trim() || null,
+          destination: destination.trim() || null,
+          arrival_buffer_minutes:
+            arrivalBufferMinutes === "" ? null : Number(arrivalBufferMinutes),
         });
       } else {
         await onSubmit("task", {
@@ -171,21 +187,67 @@ function AddItemModal({ initialValues, onClose, onSubmit }) {
           </div>
 
           {itemType === "event" ? (
-            <div className="modal-date-fields">
-              <DateTimePicker
-                id="event-start-at"
-                label="開始日時"
-                value={eventStartAt}
-                onChange={handleEventStartChange}
-              />
-              <DateTimePicker
-                id="event-end-at"
-                label="終了日時"
-                value={eventEndAt}
-                min={eventStartAt}
-                onChange={setEventEndAt}
-              />
-            </div>
+            <>
+              <div className="modal-date-fields">
+                <DateTimePicker
+                  id="event-start-at"
+                  label="開始日時"
+                  value={eventStartAt}
+                  onChange={handleEventStartChange}
+                />
+                <DateTimePicker
+                  id="event-end-at"
+                  label="終了日時"
+                  value={eventEndAt}
+                  min={eventStartAt}
+                  onChange={setEventEndAt}
+                />
+              </div>
+
+              <div className="modal-form-field">
+                <label htmlFor="event-location-name">
+                  場所名 <span>任意</span>
+                </label>
+                <input
+                  id="event-location-name"
+                  type="text"
+                  value={locationName}
+                  placeholder="例：Garraway F"
+                  onChange={(event) => setLocationName(event.target.value)}
+                />
+              </div>
+
+              <div className="modal-form-field">
+                <label htmlFor="event-destination">
+                  目的地 <span>任意</span>
+                </label>
+                <input
+                  id="event-destination"
+                  type="text"
+                  value={destination}
+                  placeholder="住所・駅名・施設名"
+                  onChange={(event) => setDestination(event.target.value)}
+                />
+              </div>
+
+              <div className="modal-form-field">
+                <label htmlFor="event-arrival-buffer-minutes">
+                  到着余裕時間（分） <span>任意</span>
+                </label>
+                <input
+                  id="event-arrival-buffer-minutes"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputMode="numeric"
+                  value={arrivalBufferMinutes}
+                  placeholder="例：10"
+                  onChange={(event) =>
+                    setArrivalBufferMinutes(event.target.value)
+                  }
+                />
+              </div>
+            </>
           ) : (
             <DateTimePicker
               defaultTime="23:45"
