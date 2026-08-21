@@ -24,6 +24,7 @@ function WeekCalendar({
   events,
   tasks,
   selectedDate,
+  onEventClick,
   onTimeClick,
 }) {
   const weekDates = getWeekDates(selectedDate);
@@ -141,7 +142,22 @@ function WeekCalendar({
                           }}
                           title={event.title}
                           key={event.id}
-                          onClick={(event) => event.stopPropagation()}
+                          role="button"
+                          tabIndex={0}
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
+                            onEventClick(event);
+                          }}
+                          onKeyDown={(keyEvent) => {
+                            if (
+                              keyEvent.key === "Enter" ||
+                              keyEvent.key === " "
+                            ) {
+                              keyEvent.preventDefault();
+                              keyEvent.stopPropagation();
+                              onEventClick(event);
+                            }
+                          }}
                         >
                           <strong>{event.title}</strong>
                           <span>

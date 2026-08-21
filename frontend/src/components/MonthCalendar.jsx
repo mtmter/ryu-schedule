@@ -14,6 +14,7 @@ function MonthCalendar({
   tasks,
   selectedDate,
   onDateClick,
+  onEventClick,
 }) {
   const calendarDates = getMonthDates(selectedDate);
   const today = new Date();
@@ -98,7 +99,22 @@ function MonthCalendar({
                           className={`month-event${connectsFromPreviousDay ? " continues-before" : ""}${connectsToNextDay ? " continues-after" : ""}`}
                           title={event.title}
                           key={`event-${event.id}`}
-                          onClick={(event) => event.stopPropagation()}
+                          role="button"
+                          tabIndex={0}
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
+                            onEventClick(event);
+                          }}
+                          onKeyDown={(keyEvent) => {
+                            if (
+                              keyEvent.key === "Enter" ||
+                              keyEvent.key === " "
+                            ) {
+                              keyEvent.preventDefault();
+                              keyEvent.stopPropagation();
+                              onEventClick(event);
+                            }
+                          }}
                         >
                           {showStartTime && (
                             <span className="month-item-time">

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import AddItemModal from "./components/AddItemModal";
 import CalendarToolbar from "./components/CalendarToolbar";
+import EventDetailsModal from "./components/EventDetailsModal";
 import MonthCalendar from "./components/MonthCalendar";
 import TaskList from "./components/TaskList";
 import WeekCalendar from "./components/WeekCalendar";
@@ -83,6 +84,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
   const [addModalValues, setAddModalValues] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
     async function loadSchedule() {
@@ -211,6 +213,45 @@ function App() {
     setAddModalValues(null);
   }
 
+  async function handleUpdateEvent(eventId, eventData) {
+    const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(eventData),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        await getResponseError(response, "予定を更新できませんでした"),
+      );
+    }
+
+    const updatedEvent = await response.json();
+    setEvents((currentEvents) =>
+      currentEvents.map((currentEvent) =>
+        currentEvent.id === updatedEvent.id ? updatedEvent : currentEvent,
+      ),
+    );
+    setSelectedEvent(updatedEvent);
+  }
+
+  async function handleDeleteEvent(eventId) {
+    const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        await getResponseError(response, "予定を削除できませんでした"),
+      );
+    }
+
+    setEvents((currentEvents) =>
+      currentEvents.filter((currentEvent) => currentEvent.id !== eventId),
+    );
+    setSelectedEvent(null);
+  }
+
   return (
     <div
       className={`schedule-app${activeView !== "tasks" ? " calendar-view-active" : ""}`}
@@ -312,12 +353,14 @@ function App() {
             tasks={tasks}
             selectedDate={selectedDate}
             onDateClick={handleMonthDateClick}
+            onEventClick={setSelectedEvent}
           />
         ) : activeView === "week" ? (
           <WeekCalendar
             events={events}
             tasks={tasks}
             selectedDate={selectedDate}
+            onEventClick={setSelectedEvent}
             onTimeClick={handleWeekTimeClick}
           />
         ) : (
@@ -334,6 +377,15 @@ function App() {
           initialValues={addModalValues}
           onClose={() => setAddModalValues(null)}
           onSubmit={handleCreateItem}
+        />
+      )}
+
+      {selectedEvent && (
+        <EventDetailsModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          onDelete={handleDeleteEvent}
+          onUpdate={handleUpdateEvent}
         />
       )}
     </div>
