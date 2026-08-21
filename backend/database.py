@@ -1,13 +1,20 @@
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 DATABASE_PATH = Path(__file__).with_name("schedule.db")
 
 
+@contextmanager
 def connect_database():
     connection = sqlite3.connect(DATABASE_PATH)
     connection.row_factory = sqlite3.Row
-    return connection
+    connection.execute("PRAGMA foreign_keys = ON")
+    try:
+        with connection:
+            yield connection
+    finally:
+        connection.close()
 
 
 def initialize_database():
@@ -50,6 +57,21 @@ def initialize_database():
         for column_name in ("reflection", "created_at"):
             if column_name in existing_columns:
                 connection.execute(f"ALTER TABLE events DROP COLUMN {column_name}")
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS travel_plans (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id INTEGER NOT NULL UNIQUE,
+                departure_at TEXT NOT NULL,
+                arrival_at TEXT NOT NULL,
+                duration_minutes INTEGER NOT NULL,
+                transport_mode TEXT NOT NULL,
+                route_details TEXT NOT NULL,
+                FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+            )
+            """
+        )
 
         connection.execute(
             """
@@ -212,6 +234,85 @@ def delete_event(event_id):
         )
 
     return cursor.rowcount > 0
+
+
+def get_travel_plan(event_id):
+    with connect_database() as connection:
+        row = connection.execute(
+            """
+            SELECT
+                id,
+                event_id,
+                departure_at,
+                arrival_at,
+                duration_minutes,
+                transport_mode,
+                route_details
+            FROM travel_plans
+            WHERE event_id = ?
+            """,
+            (event_id,),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    return dict(row)
+
+
+def save_travel_plan(
+    event_id,
+    departure_at,
+    arrival_at,
+    duration_minutes,
+    transport_mode,
+    route_details,
+):
+    with connect_database() as connection:
+        connection.execute(
+            """
+            INSERT INTO travel_plans (
+                event_id,
+                departure_at,
+                arrival_at,
+                duration_minutes,
+                transport_mode,
+                route_details
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(event_id) DO UPDATE SET
+                departure_at = excluded.departure_at,
+                arrival_at = excluded.arrival_at,
+                duration_minutes = excluded.duration_minutes,
+                transport_mode = excluded.transport_mode,
+                route_details = excluded.route_details
+            """,
+            (
+                event_id,
+                departure_at,
+                arrival_at,
+                duration_minutes,
+                transport_mode,
+                route_details,
+            ),
+        )
+        row = connection.execute(
+            """
+            SELECT
+                id,
+                event_id,
+                departure_at,
+                arrival_at,
+                duration_minutes,
+                transport_mode,
+                route_details
+            FROM travel_plans
+            WHERE event_id = ?
+            """,
+            (event_id,),
+        ).fetchone()
+
+    return dict(row)
 
 
 def get_all_tasks():
