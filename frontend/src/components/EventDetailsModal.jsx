@@ -17,6 +17,7 @@ function EventDetailsModal({
   event,
   onClose,
   onDelete,
+  onRouteRegister,
   onRouteSearch,
   onRouteSearchSuccess,
   onUpdate,
@@ -190,6 +191,7 @@ function EventDetailsModal({
             event={event}
             onBack={() => setMode("details")}
             onBusyChange={setIsRouteSearching}
+            onRegister={onRouteRegister}
             onSearch={onRouteSearch}
             onSearchSuccess={onRouteSearchSuccess}
             initialRouteResult={
