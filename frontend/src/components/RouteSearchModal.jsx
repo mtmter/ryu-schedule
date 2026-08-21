@@ -32,11 +32,17 @@ function RouteSearchModal({
   const [errorMessage, setErrorMessage] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [routeResult, setRouteResult] = useState(initialRouteResult);
+  const hasDestination = Boolean(event.destination?.trim());
 
   async function handleSubmit(submitEvent) {
     submitEvent.preventDefault();
 
     if (isSearching) {
+      return;
+    }
+
+    if (!hasDestination) {
+      setErrorMessage("予定を編集して目的地を設定してください");
       return;
     }
 
@@ -98,7 +104,7 @@ function RouteSearchModal({
       <dl className="route-search-summary">
         <div>
           <dt>目的地</dt>
-          <dd>{event.destination}</dd>
+          <dd>{event.destination || "未設定"}</dd>
         </div>
         <div>
           <dt>到着希望時刻</dt>
@@ -109,6 +115,12 @@ function RouteSearchModal({
           <dd>{event.arrival_buffer_minutes ?? 0}分</dd>
         </div>
       </dl>
+
+      {!hasDestination && (
+        <p className="route-search-notice">
+          経路を検索するには、予定を編集して目的地を設定してください。
+        </p>
+      )}
 
       {errorMessage && (
         <p className="modal-error-message" role="alert">
@@ -128,7 +140,7 @@ function RouteSearchModal({
         <button
           className="primary-button"
           type="submit"
-          disabled={isSearching}
+          disabled={isSearching || !hasDestination}
         >
           {isSearching ? "検索中..." : "検索する"}
         </button>

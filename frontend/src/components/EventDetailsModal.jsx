@@ -40,6 +40,7 @@ function EventDetailsModal({
   const [isRouteSearching, setIsRouteSearching] = useState(false);
 
   const isBusy = isSubmitting || isRouteSearching;
+  const canSearchRoute = Boolean(event.destination?.trim());
 
   useEffect(() => {
     function handleKeyDown(keyEvent) {
@@ -389,18 +390,26 @@ function EventDetailsModal({
               </div>
             </dl>
 
-            {event.destination && (
+            <div className="route-search-entry">
               <button
                 className="route-search-button"
                 type="button"
+                disabled={!canSearchRoute}
                 onClick={() => {
+                  if (!canSearchRoute) {
+                    return;
+                  }
+
                   setErrorMessage("");
                   setMode("route");
                 }}
               >
                 経路を検索
               </button>
-            )}
+              {!canSearchRoute && (
+                <small>目的地が未設定のため検索できません</small>
+              )}
+            </div>
 
             {errorMessage && (
               <p className="modal-error-message" role="alert">

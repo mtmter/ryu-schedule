@@ -799,7 +799,6 @@
 }
 
 .route-search-button {
-  justify-self: start;
   padding: 9px 14px;
   border: 1px solid #2d5dcc;
   border-radius: 8px;
@@ -809,8 +808,37 @@
   font-weight: 650;
 }
 
-.route-search-button:hover {
+.route-search-button:not(:disabled):hover {
   background: #244fae;
+}
+
+.route-search-button:disabled {
+  border-color: #d2d8e1;
+  color: #8a94a3;
+  background: #eef1f5;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.route-search-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.route-search-entry small {
+  color: #7b8493;
+  font-size: 0.75rem;
+}
+
+.route-search-notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 7px;
+  color: #6f5b23;
+  background: #fff8df;
+  font-size: 0.82rem;
 }
 
 .route-search-form {
