@@ -85,17 +85,6 @@ def initialize_database():
             """
         )
 
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS settings (
-                id INTEGER PRIMARY KEY,
-                origin_name TEXT NOT NULL,
-                origin_address TEXT NOT NULL
-            )
-            """
-        )
-
-
 def get_all_events():
     with connect_database() as connection:
         rows = connection.execute("""
@@ -382,42 +371,3 @@ def delete_task(task_id):
         )
 
     return cursor.rowcount > 0
-
-
-def get_origin_setting():
-    with connect_database() as connection:
-        row = connection.execute(
-            """
-            SELECT id, origin_name, origin_address
-            FROM settings
-            WHERE id = 1
-            """
-        ).fetchone()
-
-    if row is None:
-        return None
-
-    return dict(row)
-
-
-def save_origin_setting(origin_name, origin_address):
-    with connect_database() as connection:
-        connection.execute(
-            """
-            INSERT INTO settings (id, origin_name, origin_address)
-            VALUES (1, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                origin_name = excluded.origin_name,
-                origin_address = excluded.origin_address
-            """,
-            (origin_name, origin_address),
-        )
-        row = connection.execute(
-            """
-            SELECT id, origin_name, origin_address
-            FROM settings
-            WHERE id = 1
-            """
-        ).fetchone()
-
-    return dict(row)
