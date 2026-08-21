@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import AddItemModal from "./components/AddItemModal";
 import MonthCalendar from "./components/MonthCalendar";
 import TaskList from "./components/TaskList";
 import WeekCalendar from "./components/WeekCalendar";
+import {
+  getWeekDates,
+  isSameDay,
+  toDateTimeInputValue,
+} from "./dateUtils";
 
 const API_BASE_URL = "http://localhost:8000/api";
 
@@ -19,6 +25,50 @@ async function getScheduleData() {
   return Promise.all([eventsResponse.json(), tasksResponse.json()]);
 }
 
+function createDateAtMinutes(date, minutes) {
+  const dateAtTime = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+  dateAtTime.setMinutes(minutes);
+  return dateAtTime;
+}
+
+function createInitialValues(
+  date,
+  itemType,
+  eventStartMinutes = 9 * 60,
+  taskDueMinutes = 23 * 60 + 59,
+) {
+  const eventStart = createDateAtMinutes(date, eventStartMinutes);
+  const eventEnd = new Date(eventStart.getTime() + 60 * 60 * 1000);
+  const taskDue =
+    taskDueMinutes === null
+      ? ""
+      : toDateTimeInputValue(createDateAtMinutes(date, taskDueMinutes));
+
+  return {
+    itemType,
+    eventStartAt: toDateTimeInputValue(eventStart),
+    eventEndAt: toDateTimeInputValue(eventEnd),
+    taskDueAt: taskDue,
+  };
+}
+
+async function getResponseError(response, defaultMessage) {
+  try {
+    const errorData = await response.json();
+    if (typeof errorData.detail === "string") {
+      return errorData.detail;
+    }
+  } catch {
+    // JSONではないエラーの場合は、画面用の既定メッセージを使います。
+  }
+
+  return defaultMessage;
+}
+
 function App() {
   const [activeView, setActiveView] = useState("month");
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -27,6 +77,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
+  const [addModalValues, setAddModalValues] = useState(null);
 
   useEffect(() => {
     async function loadSchedule() {
@@ -92,6 +143,69 @@ function App() {
     }
   }
 
+  function handleAddButtonClick() {
+    const today = new Date();
+
+    if (activeView === "tasks") {
+      setAddModalValues(createInitialValues(today, "task", 9 * 60, null));
+      return;
+    }
+
+    if (activeView === "month") {
+      const isCurrentMonth =
+        selectedDate.getFullYear() === today.getFullYear() &&
+        selectedDate.getMonth() === today.getMonth();
+      const targetDate = isCurrentMonth
+        ? today
+        : new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      setAddModalValues(createInitialValues(targetDate, "event"));
+      return;
+    }
+
+    const weekDates = getWeekDates(selectedDate);
+    const targetDate = weekDates.some((date) => isSameDay(date, today))
+      ? today
+      : weekDates[0];
+    setAddModalValues(createInitialValues(targetDate, "event"));
+  }
+
+  function handleMonthDateClick(date) {
+    setAddModalValues(createInitialValues(date, "event"));
+  }
+
+  function handleWeekTimeClick(date, startMinutes) {
+    setAddModalValues(
+      createInitialValues(date, "event", startMinutes, startMinutes),
+    );
+  }
+
+  async function handleCreateItem(itemType, itemData) {
+    const response = await fetch(
+      `${API_BASE_URL}/${itemType === "event" ? "events" : "tasks"}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(itemData),
+      },
+    );
+
+    if (!response.ok) {
+      const defaultMessage =
+        itemType === "event"
+          ? "予定を追加できませんでした"
+          : "タスクを追加できませんでした";
+      throw new Error(await getResponseError(response, defaultMessage));
+    }
+
+    const createdItem = await response.json();
+    if (itemType === "event") {
+      setEvents((currentEvents) => [...currentEvents, createdItem]);
+    } else {
+      setTasks((currentTasks) => [...currentTasks, createdItem]);
+    }
+    setAddModalValues(null);
+  }
+
   return (
     <div className="schedule-app">
       <header className="app-header">
@@ -102,29 +216,39 @@ function App() {
           <h1>よりよいスケジュール帳</h1>
         </div>
 
-        <nav className="view-tabs" aria-label="表示を切り替える">
+        <div className="header-actions">
+          <nav className="view-tabs" aria-label="表示を切り替える">
+            <button
+              className={activeView === "month" ? "is-active" : ""}
+              type="button"
+              onClick={() => setActiveView("month")}
+            >
+              月
+            </button>
+            <button
+              className={activeView === "week" ? "is-active" : ""}
+              type="button"
+              onClick={() => setActiveView("week")}
+            >
+              週
+            </button>
+            <button
+              className={activeView === "tasks" ? "is-active" : ""}
+              type="button"
+              onClick={() => setActiveView("tasks")}
+            >
+              タスク
+            </button>
+          </nav>
           <button
-            className={activeView === "month" ? "is-active" : ""}
+            className="add-button"
             type="button"
-            onClick={() => setActiveView("month")}
+            onClick={handleAddButtonClick}
           >
-            月
+            <span aria-hidden="true">＋</span>
+            追加
           </button>
-          <button
-            className={activeView === "week" ? "is-active" : ""}
-            type="button"
-            onClick={() => setActiveView("week")}
-          >
-            週
-          </button>
-          <button
-            className={activeView === "tasks" ? "is-active" : ""}
-            type="button"
-            onClick={() => setActiveView("tasks")}
-          >
-            タスク
-          </button>
-        </nav>
+        </div>
       </header>
 
       {errorMessage && (
@@ -145,6 +269,7 @@ function App() {
             tasks={tasks}
             selectedDate={selectedDate}
             onDateChange={setSelectedDate}
+            onDateClick={handleMonthDateClick}
           />
         ) : activeView === "week" ? (
           <WeekCalendar
@@ -152,6 +277,7 @@ function App() {
             tasks={tasks}
             selectedDate={selectedDate}
             onDateChange={setSelectedDate}
+            onTimeClick={handleWeekTimeClick}
           />
         ) : (
           <TaskList
@@ -161,6 +287,14 @@ function App() {
           />
         )}
       </main>
+
+      {addModalValues && (
+        <AddItemModal
+          initialValues={addModalValues}
+          onClose={() => setAddModalValues(null)}
+          onSubmit={handleCreateItem}
+        />
+      )}
     </div>
   );
 }

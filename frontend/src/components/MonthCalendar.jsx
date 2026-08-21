@@ -12,7 +12,13 @@ import {
   parseDateTime,
 } from "../dateUtils";
 
-function MonthCalendar({ events, tasks, selectedDate, onDateChange }) {
+function MonthCalendar({
+  events,
+  tasks,
+  selectedDate,
+  onDateChange,
+  onDateClick,
+}) {
   const calendarDates = getMonthDates(selectedDate);
   const today = new Date();
 
@@ -68,7 +74,17 @@ function MonthCalendar({ events, tasks, selectedDate, onDateChange }) {
               return (
                 <div
                   className={`month-day${isOutsideMonth ? " is-outside-month" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日に追加`}
                   key={getDateKey(date)}
+                  onClick={() => onDateClick(date)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onDateClick(date);
+                    }
+                  }}
                 >
                   <time
                     className={`month-date${isSameDay(date, today) ? " is-today" : ""}`}
@@ -93,6 +109,7 @@ function MonthCalendar({ events, tasks, selectedDate, onDateChange }) {
                           className={`month-event${connectsFromPreviousDay ? " continues-before" : ""}${connectsToNextDay ? " continues-after" : ""}`}
                           title={event.title}
                           key={`event-${event.id}`}
+                          onClick={(event) => event.stopPropagation()}
                         >
                           {showStartTime && (
                             <span className="month-item-time">
@@ -109,6 +126,7 @@ function MonthCalendar({ events, tasks, selectedDate, onDateChange }) {
                         className="month-task"
                         title={`タスク: ${task.title}`}
                         key={`task-${task.id}`}
+                        onClick={(event) => event.stopPropagation()}
                       >
                         <span className="task-dot" aria-hidden="true" />
                         <span className="month-item-time">

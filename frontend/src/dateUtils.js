@@ -19,6 +19,12 @@ export function getDateKey(date) {
   return `${year}-${month}-${day}`;
 }
 
+export function toDateTimeInputValue(date) {
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  return `${getDateKey(date)}T${hour}:${minute}`;
+}
+
 export function startOfDay(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }

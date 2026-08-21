@@ -23,7 +23,13 @@ function formatMinutes(minutes) {
   return `${hour}:${minute}`;
 }
 
-function WeekCalendar({ events, tasks, selectedDate, onDateChange }) {
+function WeekCalendar({
+  events,
+  tasks,
+  selectedDate,
+  onDateChange,
+  onTimeClick,
+}) {
   const weekDates = getWeekDates(selectedDate);
   const today = new Date();
 
@@ -118,6 +124,18 @@ function WeekCalendar({ events, tasks, selectedDate, onDateChange }) {
                     className="week-day-column"
                     style={{ "--hour-height": `${HOUR_HEIGHT}px` }}
                     key={getDateKey(date)}
+                    onClick={(event) => {
+                      const columnRectangle =
+                        event.currentTarget.getBoundingClientRect();
+                      const clickedMinutes =
+                        ((event.clientY - columnRectangle.top) / HOUR_HEIGHT) *
+                        60;
+                      const roundedMinutes = Math.min(
+                        Math.max(Math.floor(clickedMinutes / 30) * 30, 0),
+                        23 * 60 + 30,
+                      );
+                      onTimeClick(date, roundedMinutes);
+                    }}
                   >
                     {dateEvents.map((event) => {
                       const position = getEventPositionForDay(event, date);
@@ -134,6 +152,7 @@ function WeekCalendar({ events, tasks, selectedDate, onDateChange }) {
                           }}
                           title={event.title}
                           key={event.id}
+                          onClick={(event) => event.stopPropagation()}
                         >
                           <strong>{event.title}</strong>
                           <span>
