@@ -1,9 +1,6 @@
-import CalendarToolbar from "./CalendarToolbar";
 import {
   WEEKDAY_NAMES,
-  addMonths,
   eventOccursOnDate,
-  formatMonthTitle,
   formatTime,
   getDateKey,
   getEventDaySegment,
@@ -16,7 +13,6 @@ function MonthCalendar({
   events,
   tasks,
   selectedDate,
-  onDateChange,
   onDateClick,
 }) {
   const calendarDates = getMonthDates(selectedDate);
@@ -24,13 +20,6 @@ function MonthCalendar({
 
   return (
     <section aria-label="月間カレンダー">
-      <CalendarToolbar
-        title={formatMonthTitle(selectedDate)}
-        onPrevious={() => onDateChange(addMonths(selectedDate, -1))}
-        onToday={() => onDateChange(new Date())}
-        onNext={() => onDateChange(addMonths(selectedDate, 1))}
-      />
-
       <div className="calendar-horizontal-scroll">
         <div className="month-calendar">
           <div className="month-weekdays" aria-hidden="true">

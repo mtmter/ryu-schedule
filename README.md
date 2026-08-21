@@ -445,7 +445,41 @@ travel_plans
 
 API上では `completed` は `true / false` として扱います。
 
+<<<<<<< HEAD
 ### Task JSON
+=======
+### travel_plansテーブル
+
+移動予定は、Googleなど外部サービスの生レスポンスではなく、アプリ内で利用する項目だけを保存します。
+同じ予定の経路を再保存した場合は、既存の移動予定を新しい内容で置き換えます。
+
+| カラム | SQLite型 | 必須 | 役割 |
+| --- | --- | --- | --- |
+| `id` | `INTEGER` | はい | 主キー、`AUTOINCREMENT` |
+| `event_id` | `INTEGER` | はい | `events.id`とのひも付け。1つの予定につき1件 |
+| `departure_at` | `TEXT` | はい | 出発日時、`YYYY-MM-DDTHH:mm`形式 |
+| `arrival_at` | `TEXT` | はい | 到着日時、`YYYY-MM-DDTHH:mm`形式 |
+| `duration_minutes` | `INTEGER` | はい | 所要時間（分） |
+| `transport_mode` | `TEXT` | はい | 移動手段 |
+| `route_details` | `TEXT` | はい | アプリ用に整形した経路詳細 |
+
+予定を削除した場合は、その予定にひも付く移動予定も削除されます。
+現時点では移動予定を直接操作するAPIはありません。
+
+### tasksテーブル
+
+| カラム | SQLite型 | 必須 | 初期値・役割 |
+| --- | --- | --- | --- |
+| `id` | `INTEGER` | はい | 主キー、`AUTOINCREMENT` |
+| `title` | `TEXT` | はい | タスクタイトル |
+| `due_at` | `TEXT` | いいえ | 期限。未設定時は`NULL` |
+| `description` | `TEXT` | はい | 説明。未入力時は空文字 |
+| `completed` | `INTEGER` | はい | 未完了は`0`、完了は`1`。作成時は`0` |
+
+SQLiteでは`completed`を`0`または`1`で保存しますが、APIでは`false`または`true`の真偽値として扱います。
+
+#### TaskのJSON形式
+>>>>>>> 2711c21b701724fd119f6381d36c7f2b3d9ab0a8
 
 ```json
 {

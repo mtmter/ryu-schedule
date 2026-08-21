@@ -1,10 +1,7 @@
-import CalendarToolbar from "./CalendarToolbar";
 import {
   WEEKDAY_NAMES,
-  addDays,
   eventOccursOnDate,
   formatTime,
-  formatWeekTitle,
   getDateKey,
   getEventPositionForDay,
   getWeekDates,
@@ -27,7 +24,6 @@ function WeekCalendar({
   events,
   tasks,
   selectedDate,
-  onDateChange,
   onTimeClick,
 }) {
   const weekDates = getWeekDates(selectedDate);
@@ -35,13 +31,6 @@ function WeekCalendar({
 
   return (
     <section aria-label="週間カレンダー">
-      <CalendarToolbar
-        title={formatWeekTitle(weekDates)}
-        onPrevious={() => onDateChange(addDays(selectedDate, -7))}
-        onToday={() => onDateChange(new Date())}
-        onNext={() => onDateChange(addDays(selectedDate, 7))}
-      />
-
       <div className="calendar-horizontal-scroll">
         <div className="week-calendar">
           <div className="week-header-row">
