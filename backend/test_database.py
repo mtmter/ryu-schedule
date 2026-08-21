@@ -1,3 +1,4 @@
+import json
 import sqlite3
 import tempfile
 import unittest
@@ -8,11 +9,28 @@ import database
 
 
 SAMPLE_TRAVEL_PLAN = {
+    "origin": "博多駅",
+    "destination": "福岡大学",
     "departure_at": "2026-08-24T12:52",
     "arrival_at": "2026-08-24T13:40",
     "duration_minutes": 48,
     "transport_mode": "TRANSIT",
-    "route_details": "博多駅 → 天神駅 → 福大前駅",
+    "route_details": json.dumps(
+        {
+            "segments": [
+                {
+                    "type": "TRANSIT",
+                    "from": "博多駅",
+                    "to": "福大前駅",
+                    "departure_at": "2026-08-24T12:52",
+                    "arrival_at": "2026-08-24T13:40",
+                    "duration_minutes": 48,
+                    "line_name": "福岡市地下鉄",
+                }
+            ]
+        },
+        ensure_ascii=False,
+    ),
 }
 
 
@@ -44,6 +62,8 @@ class TravelPlanDatabaseTest(unittest.TestCase):
     def save_sample_travel_plan(self):
         return database.save_travel_plan(
             self.event["id"],
+            SAMPLE_TRAVEL_PLAN["origin"],
+            SAMPLE_TRAVEL_PLAN["destination"],
             SAMPLE_TRAVEL_PLAN["departure_at"],
             SAMPLE_TRAVEL_PLAN["arrival_at"],
             SAMPLE_TRAVEL_PLAN["duration_minutes"],
@@ -51,10 +71,34 @@ class TravelPlanDatabaseTest(unittest.TestCase):
             SAMPLE_TRAVEL_PLAN["route_details"],
         )
 
+    def test_new_table_has_required_origin_and_destination_columns(self):
+        with database.connect_database() as connection:
+            columns = {
+                row["name"]: row
+                for row in connection.execute(
+                    "PRAGMA table_info(travel_plans)"
+                ).fetchall()
+            }
+
+        self.assertEqual(columns["origin"]["notnull"], 1)
+        self.assertEqual(columns["destination"]["notnull"], 1)
+
     def test_travel_plan_can_be_saved_and_retrieved(self):
         saved_travel_plan = self.save_sample_travel_plan()
 
         self.assertEqual(saved_travel_plan["event_id"], self.event["id"])
+        self.assertEqual(
+            saved_travel_plan["origin"],
+            SAMPLE_TRAVEL_PLAN["origin"],
+        )
+        self.assertEqual(
+            saved_travel_plan["destination"],
+            SAMPLE_TRAVEL_PLAN["destination"],
+        )
+        self.assertEqual(
+            json.loads(saved_travel_plan["route_details"])["segments"][0]["type"],
+            "TRANSIT",
+        )
         self.assertEqual(
             database.get_travel_plan(self.event["id"]),
             saved_travel_plan,
@@ -65,14 +109,21 @@ class TravelPlanDatabaseTest(unittest.TestCase):
 
         replaced_travel_plan = database.save_travel_plan(
             self.event["id"],
+            "天神駅",
+            "福岡大学 七隈キャンパス",
             "2026-08-24T12:45",
             "2026-08-24T13:35",
             50,
             "TRANSIT",
-            "博多駅 → 薬院駅 → 福大前駅",
+            json.dumps({"segments": []}),
         )
 
         self.assertEqual(replaced_travel_plan["id"], first_travel_plan["id"])
+        self.assertEqual(replaced_travel_plan["origin"], "天神駅")
+        self.assertEqual(
+            replaced_travel_plan["destination"],
+            "福岡大学 七隈キャンパス",
+        )
         self.assertEqual(
             replaced_travel_plan["departure_at"],
             "2026-08-24T12:45",
@@ -90,6 +141,8 @@ class TravelPlanDatabaseTest(unittest.TestCase):
         with self.assertRaises(sqlite3.IntegrityError):
             database.save_travel_plan(
                 999,
+                SAMPLE_TRAVEL_PLAN["origin"],
+                SAMPLE_TRAVEL_PLAN["destination"],
                 SAMPLE_TRAVEL_PLAN["departure_at"],
                 SAMPLE_TRAVEL_PLAN["arrival_at"],
                 SAMPLE_TRAVEL_PLAN["duration_minutes"],
@@ -103,6 +156,72 @@ class TravelPlanDatabaseTest(unittest.TestCase):
         database.delete_event(self.event["id"])
 
         self.assertIsNone(database.get_travel_plan(self.event["id"]))
+
+
+class TravelPlanMigrationTest(unittest.TestCase):
+    def test_existing_travel_plan_is_kept_when_columns_are_added(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            database_path = Path(temporary_directory) / "old_schedule.db"
+
+            with sqlite3.connect(database_path) as connection:
+                connection.executescript(
+                    """
+                    CREATE TABLE events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        title TEXT NOT NULL,
+                        start_at TEXT NOT NULL,
+                        end_at TEXT NOT NULL,
+                        description TEXT NOT NULL DEFAULT '',
+                        location_name TEXT,
+                        destination TEXT,
+                        arrival_buffer_minutes INTEGER
+                    );
+
+                    CREATE TABLE travel_plans (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        event_id INTEGER NOT NULL UNIQUE,
+                        departure_at TEXT NOT NULL,
+                        arrival_at TEXT NOT NULL,
+                        duration_minutes INTEGER NOT NULL,
+                        transport_mode TEXT NOT NULL,
+                        route_details TEXT NOT NULL,
+                        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+                    );
+
+                    INSERT INTO events (title, start_at, end_at)
+                    VALUES ('既存の予定', '2026-08-24T14:00', '2026-08-24T15:00');
+
+                    INSERT INTO travel_plans (
+                        event_id,
+                        departure_at,
+                        arrival_at,
+                        duration_minutes,
+                        transport_mode,
+                        route_details
+                    )
+                    VALUES (
+                        1,
+                        '2026-08-24T12:52',
+                        '2026-08-24T13:40',
+                        48,
+                        'TRANSIT',
+                        '{"segments": []}'
+                    );
+                    """
+                )
+            connection.close()
+
+            with patch.object(database, "DATABASE_PATH", database_path):
+                database.initialize_database()
+                migrated_travel_plan = database.get_travel_plan(1)
+
+                self.assertEqual(migrated_travel_plan["origin"], "")
+                self.assertEqual(migrated_travel_plan["destination"], "")
+                self.assertEqual(migrated_travel_plan["duration_minutes"], 48)
+                self.assertEqual(database.get_all_events()[0]["title"], "既存の予定")
+
+                created_task = database.create_task("移行後のタスク")
+                self.assertEqual(created_task["title"], "移行後のタスク")
 
 
 if __name__ == "__main__":
